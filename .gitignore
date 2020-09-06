@@ -98,6 +98,7 @@ celerybeat-schedule
 
 # Environments
 .env
+.env/
 .venv
 env/
 venv/
@@ -129,3 +130,6 @@ bot-token.txt
 TOKEN
 
 testiBot/
+
+# outfiles
+out/

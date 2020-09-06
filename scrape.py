@@ -3,6 +3,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup as BS
 from format_date2 import get_datetime2
 import json
+import argparse
 
 
 def get_listing_items():
@@ -13,7 +14,7 @@ def get_listing_items():
 
     while is_under24h:
 
-        URL = 'https://www.tori.fi/uusimaa/sisustus_ja_huonekalut/valaisimet?ca=18&cg=3020&st=s&c=3027&f=p&w=' + str(URL_page_no)
+        URL = 'https://www.tori.fi/varsinais-suomi/sisustus_ja_huonekalut/valaisimet?st=s&o=' + str(URL_page_no)
         print(URL)
         response = requests.get(URL)
 
@@ -68,31 +69,13 @@ def get_listing_items():
     return prdocut_listing_json
 
 
-
-
-
-# Hakuja niin kauan että viime hauysta 24h .. / time now - 24h
-# tulokset listaan.. -> Kuvat, otsikot , linkit, hinta.. --> Kuva ja 3 riviä.. dessu?
-# lista jsonmuotoon tahi vastaava .. heroku deployment? flask ?
-# telegram botti käy noukkimassa llistan / botti kutsu / autocall listaan
-# printtaa 24h listat ryhmään
-
-# optioita:
-# tuotteet jota seuraataan
-# alueet jota seurataan
-# aikaväli noudoille
-
-#bottiin:
-# - linkeille "x" täppä jota voi painaa ja tulos poistuu .. -> vaatii esim 2x"x"
-
-# url validaattori uusille ilmoituksille.
-
-# rakenna luokat näille
-
-
-
-# https://medium.com/better-programming/how-to-scrape-multiple-pages-of-a-website-using-a-python-web-scraper-4e2c641cff8
-# https://realpython.com/beautiful-soup-web-scraper-python/
-
-# heroku deployment with cron
-# https://saqibameen.com/deploy-python-cron-job-scripts-on-heroku/
+if __name__ == "__main__":
+    d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
+    with open(f'out{d}.json', 'w') as f:
+        try:
+            prod_list = get_listing_items()
+            parsed_json = json.loads(prod_list)
+            f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
+        except:
+            raise IOError('Could not get items')
+    
