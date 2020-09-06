@@ -1,34 +1,45 @@
 from datetime import datetime, timedelta
 
+MONTHS = {
+    "tam": 1,
+    "hel": 2,
+    "maa": 3,
+    "huh": 4,
+    "tou": 5,
+    "kes": 6,
+    "hei": 7,
+    "elo": 8,
+    "syy": 9,
+    "lok": 10,
+    "mar": 11,
+    "jou": 12
+}
 
-
-def get_datetime2(date_string):
-
-
-    # time_stamp = date_string.split()
+def get_datetime2(date_string, year_index=datetime.today().year):
     time_stamp = date_string.split()
 
-    if len(time_stamp) > 2:
-        return datetime.today() - timedelta(hours=30)
+    if time_stamp[0] == "tänään":
+        date = datetime.today().day
+        month = datetime.today().month
+        year = datetime.today().year
+    elif time_stamp[0] == "eilen":
+        date = (datetime.today() - timedelta(days=1)).day
+        month = (datetime.today() - timedelta(days=1)).month
+        year = (datetime.today() - timedelta(days=1)).year
     else:
-        if time_stamp[0] == "tänään":
-            date = datetime.today().day
-        else:
-            yesterday = datetime.today() - timedelta(days=1)
-            date = yesterday.day
+        date = time_stamp[0]
+        month = MONTHS[time_stamp[1]]
+        year = year_index
 
-    month = datetime.today().month
-    year = datetime.today().year
     time = time_stamp[-1]
 
     formatted_time_stamp = f'{date} {month} {year} {time}'
     return datetime.strptime(formatted_time_stamp, '%d %m %Y %H:%M')
 
-
 # time_stamp_str1 = "tänään 10:22"
 # time_stamp_str2 = "eilen 05:22"
 # time_stamp_str3 = "4 tou 15:48"
-#
+
 # print(get_datetime2(time_stamp_str1))
 # print(get_datetime2(time_stamp_str2))
 # print(get_datetime2(time_stamp_str3))

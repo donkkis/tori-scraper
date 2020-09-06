@@ -10,14 +10,18 @@ def get_listing_items(
     region="uusimaa", 
     cat="sisustus_ja_huonekalut", 
     subcat="valaisimet",
-    query="musta"):
+    query="",
+    timeback=1):
     
     runtime = datetime.now()
     product_listing = {}
-    is_under24h = True
+    is_within_timeframe = True
     URL_page_no = 1
+    listings_count = 0
+    year_index = datetime.today().year
+    days_of_year = [datetime.today().timetuple().tm_yday]
 
-    while is_under24h:
+    while is_within_timeframe:
 
         URL = f'https://www.tori.fi/{region}/{cat}/{subcat}?q={query}&st=s&o=' + str(URL_page_no)
         print(URL)
@@ -28,19 +32,13 @@ def get_listing_items(
 
 
         for i,listing in enumerate(listings, start=1):
-            # print(i)
-            # id element from listing as string (item_1234567)
             id = listing.get('id')
-            # title of listing as string ('Kattovalaisin Kruunu')
             title = listing.find('div', class_="li-title").contents[0]
-            # price of listing as string (42€), spaces removed, handle no price
             try:
                 price = listing.find('p', class_="list_price").contents[0].replace(" ", "")
             except IndexError:
                 price = "Ei ilmoitettu"
-            # link to listing as URL (https://www.tori.fi/...)
             product_link = listing.get('href')
-            # link to image of listing as URL (https://www.tori.fi/...)
             try:
                 image_link = listing.find('div', class_="item_image_div").img['src']
             except AttributeError:
@@ -48,12 +46,12 @@ def get_listing_items(
 
             listing_date = listing.find('div', class_="date_image").contents[0]
 
-            # If listing is over 24h old, STOP!
-            date = get_datetime2(listing_date)
-            over_24h = runtime - date
-            print(f'over_24h: {over_24h} --> is_over24h: {over_24h.days}')
-            if over_24h.days >= 1:
-                is_under24h = False
+            # Stopping condition #1 listing is older than specified timeframe
+            date = get_datetime2(listing_date, year_index)
+            print(date)
+            tdiff = runtime - date
+            if tdiff.days >= timeback:
+                is_within_timeframe = False
                 break
             else:
                 items = {
@@ -64,23 +62,58 @@ def get_listing_items(
                     "image_link": image_link,
                     "time_stamp": date.strftime('%d.%m.%Y %H:%M')
                 }
+
+                doy = date.timetuple().tm_yday
+
+                if not days_of_year[-1] == doy and any(doy >= d for d in days_of_year):
+                    year_index = year_index - 1
+                    days_of_year = []
+
+                days_of_year.append(doy)
                 product_listing[id] = items
+
+        # Stopping condition #2 no more listings
+        if len(product_listing) == listings_count:
+            is_within_timeframe = False
+
+        listings_count = len(product_listing)
 
         URL_page_no = URL_page_no + 1
         print(f'page number: {URL_page_no} - listings:{len(product_listing)}')
 
-    prdocut_listing_json = json.dumps(product_listing)
+    product_listing_json = json.dumps(product_listing)
 
-    return prdocut_listing_json
+    return product_listing_json
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--region', dest='region')
+    parser.add_argument('--category', dest='category')
+    parser.add_argument('--subcategory', dest='subcategory')
+    parser.add_argument('--query', dest='query')
+    parser.add_argument('--timeback', dest='timeback', 
+                        help='time in days counting back from current time to include in search')
+    args = parser.parse_args()
+
+    print(args.region)
+    print(args.category)
+    print(args.subcategory)
+    print(args.query)
+    print(args.timeback)
+    
     d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
     # parse query:
     # re.sub(r'\W+s', '', "House Doctor, Molecular kattovalaisin").replace(" ", "+")
-    with open(f'./out/out{d}.json', 'w') as f:
+    with open(f'./out/out_{d}.json', 'w') as f:
         try:
-            prod_list = get_listing_items()
+            prod_list = get_listing_items(
+                region=args.region,
+                cat=args.category,
+                subcat=args.subcategory,
+                query=args.query if args.query else "",
+                timeback=int(args.timeback))
+
             parsed_json = json.loads(prod_list)
             f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
         except:
