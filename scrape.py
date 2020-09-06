@@ -6,7 +6,12 @@ import json
 import argparse
 
 
-def get_listing_items():
+def get_listing_items(
+    region="uusimaa", 
+    cat="sisustus_ja_huonekalut", 
+    subcat="valaisimet",
+    query="musta"):
+    
     runtime = datetime.now()
     product_listing = {}
     is_under24h = True
@@ -14,7 +19,7 @@ def get_listing_items():
 
     while is_under24h:
 
-        URL = 'https://www.tori.fi/varsinais-suomi/sisustus_ja_huonekalut/valaisimet?st=s&o=' + str(URL_page_no)
+        URL = f'https://www.tori.fi/{region}/{cat}/{subcat}?q={query}&st=s&o=' + str(URL_page_no)
         print(URL)
         response = requests.get(URL)
 
@@ -71,7 +76,9 @@ def get_listing_items():
 
 if __name__ == "__main__":
     d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
-    with open(f'out{d}.json', 'w') as f:
+    # parse query:
+    # re.sub(r'\W+s', '', "House Doctor, Molecular kattovalaisin").replace(" ", "+")
+    with open(f'./out/out{d}.json', 'w') as f:
         try:
             prod_list = get_listing_items()
             parsed_json = json.loads(prod_list)
