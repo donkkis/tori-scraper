@@ -14,7 +14,7 @@ def get_listing_items(
     timeback=1):
     
     runtime = datetime.now()
-    product_listing = {}
+    product_listing = []
     is_within_timeframe = True
     URL_page_no = 1
     listings_count = 0
@@ -48,13 +48,12 @@ def get_listing_items(
 
             # Stopping condition #1 listing is older than specified timeframe
             date = get_datetime2(listing_date, year_index)
-            print(date)
             tdiff = runtime - date
             if tdiff.days >= timeback:
                 is_within_timeframe = False
                 break
             else:
-                items = {
+                item = {
                     "id": id,
                     "title": title,
                     "price": price,
@@ -70,7 +69,7 @@ def get_listing_items(
                     days_of_year = []
 
                 days_of_year.append(doy)
-                product_listing[id] = items
+                product_listing.append(item)
 
         # Stopping condition #2 no more listings
         if len(product_listing) == listings_count:
