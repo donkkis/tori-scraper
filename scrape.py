@@ -38,6 +38,10 @@ def get_listing_items(
                 price = listing.find('p', class_="list_price").contents[0].replace(" ", "")
             except IndexError:
                 price = "Ei ilmoitettu"
+            try:
+                _region = listing.find('div', class_="cat_geo").find('p').getText().replace(" ", "").replace("\n", "").replace("\t", "")
+            except IndexError:
+                _region = "Ei ilmoitettu"
             product_link = listing.get('href')
             try:
                 image_link = listing.find('div', class_="item_image_div").img['src']
@@ -56,6 +60,9 @@ def get_listing_items(
                 item = {
                     "id": id,
                     "title": title,
+                    "region": _region,
+                    "category": cat,
+                    "subcategory": subcat,
                     "price": price,
                     "product_link": product_link,
                     "image_link": image_link,
