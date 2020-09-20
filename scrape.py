@@ -4,7 +4,9 @@ from bs4 import BeautifulSoup as BS
 from format_date2 import get_datetime2
 import json
 import argparse
-
+from pymongo import MongoClient
+import os
+from dotenv import load_dotenv
 
 def get_listing_items(
     region="uusimaa", 
@@ -89,17 +91,21 @@ def get_listing_items(
 
     product_listing_json = json.dumps(product_listing)
 
-    return product_listing_json
+    return product_listing_json, product_listing
 
 
 if __name__ == "__main__":
+    load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument('--region', dest='region')
     parser.add_argument('--category', dest='category')
     parser.add_argument('--subcategory', dest='subcategory')
     parser.add_argument('--query', dest='query')
-    parser.add_argument('--timeback', dest='timeback', 
+    parser.add_argument('--timeback', dest='timeback',
                         help='time in days counting back from current time to include in search')
+    parser.add_argument('--dest', dest='dest',
+                        help='Choose either "mongo" to write results to database or "local" to write to file',
+                        default='local')
     args = parser.parse_args()
 
     print(args.region)
@@ -111,17 +117,26 @@ if __name__ == "__main__":
     d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
     # parse query:
     # re.sub(r'\W+s', '', "House Doctor, Molecular kattovalaisin").replace(" ", "+")
-    with open(f'./out/out_{d}.json', 'w') as f:
-        try:
-            prod_list = get_listing_items(
-                region=args.region,
-                cat=args.category,
-                subcat=args.subcategory,
-                query=args.query if args.query else "",
-                timeback=int(args.timeback))
-
-            parsed_json = json.loads(prod_list)
+    try:
+        prod_list_json, prod_list = get_listing_items(
+            region=args.region,
+            cat=args.category,
+            subcat=args.subcategory,
+            query=args.query if args.query else "",
+            timeback=int(args.timeback))
+    except:
+        raise IOError('Could not get items')
+    
+    if args.dest == 'local':
+        with open(f'./out/out_{d}.json', 'w') as f:
+            parsed_json = json.loads(prod_list_json)
             f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
-        except:
-            raise IOError('Could not get items')
+    elif args.dest == 'mongo':
+        uri = os.getenv("MONGODB_URI")
+        client = MongoClient(uri)
+        db = client['tavaralle-hinta']
+        db.listings.insert_many(prod_list)
+        
+
+
     
