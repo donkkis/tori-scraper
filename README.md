@@ -15,7 +15,7 @@ In project root, run:
 3. `pip install -r requirements.txt`
 
 ### Usage:
-
+```
 usage: scrape.py [-h] [--region REGION] [--category CATEGORY]
                  [--subcategory SUBCATEGORY] [--query QUERY]
                  [--timeback TIMEBACK]
@@ -32,7 +32,7 @@ optional arguments:
                         Samsung, iPhone
   --timeback TIMEBACK   Time in days counting back from current time to
                         include in search
-
+```
 ### Example
 
 Get new listings from last 24 hours from whole Finland wherein `iPhone` appears a substring in listing title:
