@@ -2,16 +2,11 @@ import requests
 from datetime import datetime
 from bs4 import BeautifulSoup as BS
 from format_date2 import get_datetime2
+from pathlib import Path
 import json
 import argparse
 
-
-def get_listing_items(
-    region="uusimaa", 
-    cat="sisustus_ja_huonekalut", 
-    subcat="valaisimet",
-    query="",
-    timeback=1):
+def get_listing_items(region, cat, subcat, query, timeback):
     
     runtime = datetime.now()
     product_listing = []
@@ -98,7 +93,7 @@ if __name__ == "__main__":
     parser.add_argument('--category', dest='category')
     parser.add_argument('--subcategory', dest='subcategory')
     parser.add_argument('--query', dest='query')
-    parser.add_argument('--timeback', dest='timeback', 
+    parser.add_argument('--timeback', dest='timeback', type=int,
                         help='time in days counting back from current time to include in search')
     args = parser.parse_args()
 
@@ -109,8 +104,7 @@ if __name__ == "__main__":
     print(args.timeback)
     
     d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
-    # parse query:
-    # re.sub(r'\W+s', '', "House Doctor, Molecular kattovalaisin").replace(" ", "+")
+    Path('./out').mkdir(exist_ok=True)
     with open(f'./out/out_{d}.json', 'w') as f:
         try:
             prod_list = get_listing_items(
@@ -118,7 +112,7 @@ if __name__ == "__main__":
                 cat=args.category,
                 subcat=args.subcategory,
                 query=args.query if args.query else "",
-                timeback=int(args.timeback))
+                timeback=args.timeback)
 
             parsed_json = json.loads(prod_list)
             f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
