@@ -89,12 +89,16 @@ def get_listing_items(region, cat, subcat, query, timeback):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--region', dest='region')
-    parser.add_argument('--category', dest='category')
-    parser.add_argument('--subcategory', dest='subcategory')
-    parser.add_argument('--query', dest='query')
+    parser.add_argument('--region', dest='region',
+                        help='Region to search from, e.g. koko_suomi, uusimaa, varsinais-suomi')
+    parser.add_argument('--category', dest='category',
+                        help='Top-level listing category, e.g. puhelimet_ja_tarvikkeet')
+    parser.add_argument('--subcategory', dest='subcategory',
+                        help='Listing subcategory, e.g. puhelimet')
+    parser.add_argument('--query', dest='query',
+                        help='Additional search string for filtering results, e.g. Samsung, iPhone')
     parser.add_argument('--timeback', dest='timeback', type=int,
-                        help='time in days counting back from current time to include in search')
+                        help='Time in days counting back from current time to include in search')
     args = parser.parse_args()
 
     print(args.region)
