@@ -115,21 +115,21 @@ if __name__ == "__main__":
     
     d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
 
+    try:
+        prod_list_json, prod_list = get_listing_items(
+            region=args.region,
+            cat=args.category,
+            subcat=args.subcategory,
+            query=args.query if args.query else "",
+            timeback=args.timeback)
+    except:
+        raise IOError('Could not get items')
+
     if args.dest == 'local':
         Path('./out').mkdir(exist_ok=True)
         with open(f'./out/out_{d}.json', 'w') as f:
-            try:
-                prod_list = get_listing_items(
-                  region=args.region,
-                  cat=args.category,
-                  subcat=args.subcategory,
-                  query=args.query if args.query else "",
-                  timeback=args.timeback)
-
-                  parsed_json = json.loads(prod_list)
-                  f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
-            except:
-                raise IOError('Could not get items')
+            parsed_json = json.loads(prod_list_json)
+            f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
 
     elif args.dest == 'mongo':
         uri = os.getenv("MONGODB_URI")
