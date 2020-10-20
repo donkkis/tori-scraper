@@ -114,6 +114,7 @@ def run(region, category, subcategory, query, timeback, dest):
         client = MongoClient(uri)
         db = client['tavaralle-hinta']
         db.listings.insert_many(prod_list)
+        db.insertOps.insert_one({'created': datetime.now(), 'insert_count': len(prod_list)})
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
