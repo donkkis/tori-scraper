@@ -33,7 +33,7 @@ def get_listing_items(region, cat, subcat, query, timeback):
             id = listing.get('id')
             title = listing.find('div', class_="li-title").contents[0]
             try:
-                price = listing.find('p', class_="list_price").contents[0].replace(" ", "")
+                price = int(listing.find('p', class_="list_price").contents[0].replace(" ", "").replace("€", ""))
             except IndexError:
                 price = "Ei ilmoitettu"
             try:
@@ -64,7 +64,7 @@ def get_listing_items(region, cat, subcat, query, timeback):
                     "price": price,
                     "product_link": product_link,
                     "image_link": image_link,
-                    "time_stamp": date.strftime('%d.%m.%Y %H:%M')
+                    "time_stamp": date
                 }
 
                 doy = date.timetuple().tm_yday
@@ -85,7 +85,10 @@ def get_listing_items(region, cat, subcat, query, timeback):
         URL_page_no = URL_page_no + 1
         logging.info(f'page number: {URL_page_no} - listings:{len(product_listing)}')
 
-    product_listing_json = json.dumps(product_listing)
+    timef = '%d.%m.%Y %H:%M'
+    pmap = map(
+        lambda b: {**b, 'time_stamp': b['time_stamp'].strftime(timef)}, product_listing)
+    product_listing_json = json.dumps(list(pmap))
 
     return product_listing_json, product_listing
 
