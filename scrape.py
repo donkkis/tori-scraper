@@ -12,6 +12,13 @@ import logging
 
 load_dotenv()
 
+def get_listing_details(listing_url):
+    res = requests.get(listing_url)
+    detail = BS(res.text, 'html.parser')
+    detail = detail.find('div', {'itemprop': 'description'}).get_text()
+    detail = ' '.join(detail.split()).lstrip('Lisätiedot ')
+    return detail
+
 def get_listing_items(region, cat, subcat, query, timeback):
     runtime = datetime.now()
     product_listing = []
