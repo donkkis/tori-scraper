@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime
 from bs4 import BeautifulSoup as BS
-from .format_date2 import get_datetime2
+from format_date2 import get_datetime2
 from pathlib import Path
 import json
 import argparse
@@ -135,12 +135,6 @@ if __name__ == "__main__":
                         help='Choose either "mongo" to write results to database or "local" to write to file',
                         default='local')
     args = parser.parse_args()
-
-    print(args.region)
-    print(args.category)
-    print(args.subcategory)
-    print(args.query)
-    print(args.timeback)
 
     run(region=args.region,
         category=args.category,
