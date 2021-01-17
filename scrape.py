@@ -124,8 +124,9 @@ def run(region, category, subcategory, query, timeback, dest):
 
     elif dest == 'mongo':
         uri = os.getenv("MONGODB_URI")
+        db_name = os.getenv("DB_NAME")
         client = MongoClient(uri)
-        db = client['tavaralle-hinta']
+        db = client[db_name]
         db.listings.insert_many(prod_list)
         db.insertOps.insert_one({'created': datetime.now(), 'insert_count': len(prod_list)})
 
