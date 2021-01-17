@@ -12,6 +12,13 @@ import logging
 
 load_dotenv()
 
+def get_listing_details(listing_url):
+    res = requests.get(listing_url)
+    detail = BS(res.text, 'html.parser')
+    detail = detail.find('div', {'itemprop': 'description'}).get_text()
+    detail = ' '.join(detail.split()).lstrip('Lisätiedot ')
+    return detail
+
 def get_listing_items(region, cat, subcat, query, timeback):
     runtime = datetime.now()
     product_listing = []
@@ -45,6 +52,8 @@ def get_listing_items(region, cat, subcat, query, timeback):
                 image_link = listing.find('div', class_="item_image_div").img['src']
             except AttributeError:
                 image_link = "Ei kuvaa"
+            detail_uri = listing.get('href')
+            description = get_listing_details(detail_uri)
 
             listing_date = listing.find('div', class_="date_image").contents[0]
 
@@ -64,7 +73,8 @@ def get_listing_items(region, cat, subcat, query, timeback):
                     "price": price,
                     "product_link": product_link,
                     "image_link": image_link,
-                    "time_stamp": date
+                    "time_stamp": date,
+                    "description": description
                 }
 
                 doy = date.timetuple().tm_yday
