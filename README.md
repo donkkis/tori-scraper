@@ -13,6 +13,7 @@ In project root, run:
 1. `virtualenv .venv` or `virtualenv <path/to/python38/python .venv` if you need to set python executable explicitly
 2. `.venv\Scripts\activate`
 3. `pip install -r requirements.txt`
+4. `pip install -e .`
 
 ### Usage:
 ```
