@@ -16,6 +16,12 @@ MONTHS = {
 }
 
 def get_datetime2(date_string, year_index=datetime.today().year):
+    """
+    Parse datetime from tori.fi raw datetime string
+
+    returns:
+        listing_date: a Python DateTime object 
+    """
     time_stamp = date_string.split()
 
     if time_stamp[0] == "tänään":
@@ -34,7 +40,8 @@ def get_datetime2(date_string, year_index=datetime.today().year):
     time = time_stamp[-1]
 
     formatted_time_stamp = f'{date} {month} {year} {time}'
-    return datetime.strptime(formatted_time_stamp, '%d %m %Y %H:%M')
+    listing_date = datetime.strptime(formatted_time_stamp, '%d %m %Y %H:%M') 
+    return listing_date
 
 # time_stamp_str1 = "tänään 10:22"
 # time_stamp_str2 = "eilen 05:22"

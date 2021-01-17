@@ -8,6 +8,9 @@ import argparse
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
+import logging
+
+load_dotenv()
 
 def get_listing_items(region, cat, subcat, query, timeback):
     runtime = datetime.now()
@@ -19,9 +22,7 @@ def get_listing_items(region, cat, subcat, query, timeback):
     days_of_year = [datetime.today().timetuple().tm_yday]
 
     while is_within_timeframe:
-
         URL = f'https://www.tori.fi/{region}/{cat}/{subcat}?q={query}&st=s&o=' + str(URL_page_no)
-        print(URL)
         response = requests.get(URL)
 
         page = BS(response.text, "html.parser")
@@ -32,7 +33,7 @@ def get_listing_items(region, cat, subcat, query, timeback):
             id = listing.get('id')
             title = listing.find('div', class_="li-title").contents[0]
             try:
-                price = listing.find('p', class_="list_price").contents[0].replace(" ", "")
+                price = int(listing.find('p', class_="list_price").contents[0].replace(" ", "").replace("€", ""))
             except IndexError:
                 price = "Ei ilmoitettu"
             try:
@@ -63,7 +64,7 @@ def get_listing_items(region, cat, subcat, query, timeback):
                     "price": price,
                     "product_link": product_link,
                     "image_link": image_link,
-                    "time_stamp": date.strftime('%d.%m.%Y %H:%M')
+                    "time_stamp": date
                 }
 
                 doy = date.timetuple().tm_yday
@@ -82,15 +83,43 @@ def get_listing_items(region, cat, subcat, query, timeback):
         listings_count = len(product_listing)
 
         URL_page_no = URL_page_no + 1
-        print(f'page number: {URL_page_no} - listings:{len(product_listing)}')
+        logging.info(f'page number: {URL_page_no} - listings:{len(product_listing)}')
 
-    product_listing_json = json.dumps(product_listing)
+    timef = '%d.%m.%Y %H:%M'
+    pmap = map(
+        lambda b: {**b, 'time_stamp': b['time_stamp'].strftime(timef)}, product_listing)
+    product_listing_json = json.dumps(list(pmap))
 
     return product_listing_json, product_listing
 
+def run(region, category, subcategory, query, timeback, dest):
+    d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
+    logging.info("2")
+    #try:
+    prod_list_json, prod_list = get_listing_items(
+        region=region,
+        cat=category,
+        subcat=subcategory,
+        query=query if query else "",
+        timeback=timeback)
+    #except Exception:
+    #    logging.info(Exception)
+    #    raise IOError('Could not get items')
+
+    if dest == 'local':
+        Path('./out').mkdir(exist_ok=True)
+        with open(f'./out/out_{d}.json', 'w') as f:
+            parsed_json = json.loads(prod_list_json)
+            f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
+
+    elif dest == 'mongo':
+        uri = os.getenv("MONGODB_URI")
+        client = MongoClient(uri)
+        db = client['tavaralle-hinta']
+        db.listings.insert_many(prod_list)
+        db.insertOps.insert_one({'created': datetime.now(), 'insert_count': len(prod_list)})
 
 if __name__ == "__main__":
-    load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument('--region', dest='region',
                         help='Region to search from, e.g. koko_suomi, uusimaa, varsinais-suomi')
@@ -107,35 +136,13 @@ if __name__ == "__main__":
                         default='local')
     args = parser.parse_args()
 
-    print(args.region)
-    print(args.category)
-    print(args.subcategory)
-    print(args.query)
-    print(args.timeback)
+    run(region=args.region,
+        category=args.category,
+        subcategory=args.subcategory,
+        query=args.query,
+        timeback=args.timeback,
+        dest=args.dest)
     
-    d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
-
-    try:
-        prod_list_json, prod_list = get_listing_items(
-            region=args.region,
-            cat=args.category,
-            subcat=args.subcategory,
-            query=args.query if args.query else "",
-            timeback=args.timeback)
-    except:
-        raise IOError('Could not get items')
-
-    if args.dest == 'local':
-        Path('./out').mkdir(exist_ok=True)
-        with open(f'./out/out_{d}.json', 'w') as f:
-            parsed_json = json.loads(prod_list_json)
-            f.write(json.dumps(parsed_json, indent=4, sort_keys=True))
-
-    elif args.dest == 'mongo':
-        uri = os.getenv("MONGODB_URI")
-        client = MongoClient(uri)
-        db = client['tavaralle-hinta']
-        db.listings.insert_many(prod_list)
         
 
 
