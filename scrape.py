@@ -1,4 +1,5 @@
 import requests
+import re
 from datetime import datetime
 from bs4 import BeautifulSoup as BS
 from format_date2 import get_datetime2
@@ -12,6 +13,11 @@ import logging
 
 load_dotenv()
 
+RUNTIME = datetime.now()
+year_index = datetime.today().year
+days_of_year = [datetime.today().timetuple().tm_yday]
+is_within_timeframe = True
+
 def get_listing_details(listing_url):
     res = requests.get(listing_url)
     detail = BS(res.text, 'html.parser')
@@ -19,73 +25,80 @@ def get_listing_details(listing_url):
     detail = ' '.join(detail.split()).lstrip('Lisätiedot ')
     return detail
 
+def handle_listing_page(page, region, cat, subcat, timeback, product_listing=None):
+    global RUNTIME, year_index, days_of_year, is_within_timeframe
+
+    if not product_listing:
+        product_listing = []
+
+    listings = page.find_all('a', class_='item_row_flex')
+
+    for i,listing in enumerate(listings, start=1):
+        id = listing.get('id')
+        title = listing.find('div', class_="li-title").contents[0]
+        try:
+            price = listing.find('p', class_="list_price").contents[0]
+            price = int(re.sub('[^0-9]', '', price))
+        except IndexError:
+            price = "Ei ilmoitettu"
+        try:
+            _region = listing.find('div', class_="cat_geo").find('p').getText().replace(" ", "").replace("\n", "").replace("\t", "")
+        except IndexError:
+            _region = "Ei ilmoitettu"
+        product_link = listing.get('href')
+        try:
+            image_link = listing.find('div', class_="item_image_div").img['src']
+        except AttributeError:
+            image_link = "Ei kuvaa"
+        detail_uri = listing.get('href')
+        description = get_listing_details(detail_uri)
+
+        listing_date = listing.find('div', class_="date_image").contents[0]
+
+        # Stopping condition #1 listing is older than specified timeframe
+        date = get_datetime2(listing_date, year_index)
+        tdiff = RUNTIME - date
+        if tdiff.days >= timeback:
+            is_within_timeframe = False
+            break
+        else:
+            item = {
+                "id": id,
+                "title": title,
+                "region": _region,
+                "category": cat,
+                "subcategory": subcat,
+                "price": price,
+                "product_link": product_link,
+                "image_link": image_link,
+                "time_stamp": date,
+                "description": description
+            }
+
+            doy = date.timetuple().tm_yday
+
+            if not days_of_year[-1] == doy and any(doy >= d for d in days_of_year):
+                year_index = year_index - 1
+                days_of_year = []
+
+            days_of_year.append(doy)
+            product_listing.append(item)
+
+    return product_listing
+
 def get_listing_items(region, cat, subcat, query, timeback):
-    runtime = datetime.now()
+    global is_within_timeframe
+
     product_listing = []
-    is_within_timeframe = True
     URL_page_no = 1
     listings_count = 0
-    year_index = datetime.today().year
-    days_of_year = [datetime.today().timetuple().tm_yday]
 
     while is_within_timeframe:
         URL = f'https://www.tori.fi/{region}/{cat}/{subcat}?q={query}&st=s&o=' + str(URL_page_no)
         response = requests.get(URL)
-
         page = BS(response.text, "html.parser")
-        listings = page.find_all('a', class_='item_row_flex')
-
-
-        for i,listing in enumerate(listings, start=1):
-            id = listing.get('id')
-            title = listing.find('div', class_="li-title").contents[0]
-            try:
-                price = int(listing.find('p', class_="list_price").contents[0].replace(" ", "").replace("€", ""))
-            except IndexError:
-                price = "Ei ilmoitettu"
-            try:
-                _region = listing.find('div', class_="cat_geo").find('p').getText().replace(" ", "").replace("\n", "").replace("\t", "")
-            except IndexError:
-                _region = "Ei ilmoitettu"
-            product_link = listing.get('href')
-            try:
-                image_link = listing.find('div', class_="item_image_div").img['src']
-            except AttributeError:
-                image_link = "Ei kuvaa"
-            detail_uri = listing.get('href')
-            description = get_listing_details(detail_uri)
-
-            listing_date = listing.find('div', class_="date_image").contents[0]
-
-            # Stopping condition #1 listing is older than specified timeframe
-            date = get_datetime2(listing_date, year_index)
-            tdiff = runtime - date
-            if tdiff.days >= timeback:
-                is_within_timeframe = False
-                break
-            else:
-                item = {
-                    "id": id,
-                    "title": title,
-                    "region": _region,
-                    "category": cat,
-                    "subcategory": subcat,
-                    "price": price,
-                    "product_link": product_link,
-                    "image_link": image_link,
-                    "time_stamp": date,
-                    "description": description
-                }
-
-                doy = date.timetuple().tm_yday
-
-                if not days_of_year[-1] == doy and any(doy >= d for d in days_of_year):
-                    year_index = year_index - 1
-                    days_of_year = []
-
-                days_of_year.append(doy)
-                product_listing.append(item)
-
+        product_listing = handle_listing_page(page, region, cat, subcat,
+                                                                   timeback, product_listing)
         # Stopping condition #2 no more listings
         if len(product_listing) == listings_count:
             is_within_timeframe = False
