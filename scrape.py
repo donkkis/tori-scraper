@@ -21,11 +21,14 @@ is_within_timeframe = True
 def get_listing_details(listing_url):
     res = requests.get(listing_url)
     detail = BS(res.text, 'html.parser')
-    detail = detail.find('div', {'itemprop': 'description'}).get_text()
-    detail = ' '.join(detail.split()).lstrip('Lisätiedot ')
+    try:
+        detail = detail.find('div', {'itemprop': 'description'}).get_text()
+        detail = ' '.join(detail.split()).lstrip('Lisätiedot ')
+    except:
+        detail = None
     return detail
 
-def handle_listing_page(page, region, cat, subcat, timeback, product_listing=None):
+def handle_listing_page(page, region, cat, subcat, timeback, product_listing=None, include_detail=True):
     global RUNTIME, year_index, days_of_year, is_within_timeframe
 
     if not product_listing:
@@ -50,8 +53,11 @@ def handle_listing_page(page, region, cat, subcat, timeback, product_listing=Non
             image_link = listing.find('div', class_="item_image_div").img['src']
         except AttributeError:
             image_link = "Ei kuvaa"
-        detail_uri = listing.get('href')
-        description = get_listing_details(detail_uri)
+        if include_detail:
+            detail_uri = listing.get('href')
+            description = get_listing_details(detail_uri)
+        else:
+            description = None
 
         listing_date = listing.find('div', class_="date_image").contents[0]
 
@@ -71,9 +77,11 @@ def handle_listing_page(page, region, cat, subcat, timeback, product_listing=Non
                 "price": price,
                 "product_link": product_link,
                 "image_link": image_link,
-                "time_stamp": date,
-                "description": description
+                "time_stamp": date
             }
+
+            if description:
+                item['description'] = description 
 
             doy = date.timetuple().tm_yday
 

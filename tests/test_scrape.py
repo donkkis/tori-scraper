@@ -7,7 +7,12 @@ from datetime import datetime as dt
 from scrape import get_listing_details, handle_listing_page
 from pathlib import Path
 from bs4 import BeautifulSoup as BS
+from freezegun import freeze_time
+from unittest.mock import patch
 
+MOCK_NOW = dt(2021, 1, 24, 13, 0, 0)
+
+@patch('scrape.RUNTIME', MOCK_NOW)
 class TestScrapeFunctions(unittest.TestCase):
 
     @responses.activate
@@ -21,6 +26,7 @@ class TestScrapeFunctions(unittest.TestCase):
         detail = get_listing_details('http://mock_detail_uri')
         self.assertEqual(expect, detail)
 
+    @freeze_time(MOCK_NOW)
     def test_get_list_view(self):
         mock_list = Path('../data/test_list_to_detail.html').read_text()
         mock_list = BS(mock_list, 'html.parser')
@@ -29,7 +35,8 @@ class TestScrapeFunctions(unittest.TestCase):
                                        region='lappi',
                                        cat='puhelimet_ja_tarvikkeet',
                                        subcat='puhelimet',
-                                       timeback=3)
+                                       timeback=3,
+                                       include_detail=False)
         timef = '%d.%m.%Y %H:%M'
         listings = list(map(
             lambda b: {**b, 'time_stamp': b['time_stamp'].strftime(timef), 'image_link': None}, listings))
