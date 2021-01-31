@@ -28,6 +28,34 @@ def get_listing_details(listing_url):
         detail = None
     return detail
 
+def _parse_price(listing):
+    try:
+        price = listing.find('p', class_="list_price").contents[0]
+        price = int(re.sub('[^0-9]', '', price))
+    except IndexError:
+        price = "Ei ilmoitettu"
+    return price
+
+def _parse_region(listing):
+    try:
+        region = listing.find('div', class_="cat_geo").find('p').getText().replace(" ", "").replace("\n", "").replace("\t", "")
+    except IndexError:
+        region = "Ei ilmoitettu"
+    return region
+
+def _parse_image_link(listing):
+    try:
+        image_link = listing.find('div', class_="item_image_div").img['src']
+    except AttributeError:
+        image_link = "Ei kuvaa"
+    return image_link
+
+def _parse_description(listing):
+    detail_uri = listing.get('href')
+    description = get_listing_details(detail_uri)
+    return description
+
+
 def handle_listing_page(page, region, cat, subcat, timeback, product_listing=None, include_detail=True):
     global RUNTIME, year_index, days_of_year, is_within_timeframe
 
@@ -39,26 +67,11 @@ def handle_listing_page(page, region, cat, subcat, timeback, product_listing=Non
     for i,listing in enumerate(listings, start=1):
         id = listing.get('id')
         title = listing.find('div', class_="li-title").contents[0]
-        try:
-            price = listing.find('p', class_="list_price").contents[0]
-            price = int(re.sub('[^0-9]', '', price))
-        except IndexError:
-            price = "Ei ilmoitettu"
-        try:
-            _region = listing.find('div', class_="cat_geo").find('p').getText().replace(" ", "").replace("\n", "").replace("\t", "")
-        except IndexError:
-            _region = "Ei ilmoitettu"
+        price = _parse_price(listing)
+        _region = _parse_region(listing)
         product_link = listing.get('href')
-        try:
-            image_link = listing.find('div', class_="item_image_div").img['src']
-        except AttributeError:
-            image_link = "Ei kuvaa"
-        if include_detail:
-            detail_uri = listing.get('href')
-            description = get_listing_details(detail_uri)
-        else:
-            description = None
-
+        image_link = _parse_image_link(listing)
+        description = _parse_description(listing) if include_detail else None
         listing_date = listing.find('div', class_="date_image").contents[0]
 
         # Stopping condition #1 listing is older than specified timeframe
