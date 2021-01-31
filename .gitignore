@@ -99,6 +99,7 @@ celerybeat-schedule
 # Environments
 .env
 .env/
+.env-dev
 .venv
 env/
 venv/
@@ -137,3 +138,5 @@ out/
 # test assets
 data
 donkkis.egg-info
+
+local.settings.json
