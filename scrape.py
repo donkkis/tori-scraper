@@ -14,6 +14,7 @@ import logging
 load_dotenv()
 
 RUNTIME = datetime.now()
+TIMEF = '%d.%m.%Y %H:%M'
 year_index = datetime.today().year
 days_of_year = [datetime.today().timetuple().tm_yday]
 is_within_timeframe = True
@@ -58,13 +59,10 @@ def _parse_description(listing):
 
 def handle_listing_page(page, region, cat, subcat, timeback, product_listing=None, include_detail=True):
     global RUNTIME, year_index, days_of_year, is_within_timeframe
-
-    if not product_listing:
-        product_listing = []
-
+    product_listing = [] if not product_listing else product_listing
     listings = page.find_all('a', class_='item_row_flex')
 
-    for i,listing in enumerate(listings, start=1):
+    for listing in listings:
         id = listing.get('id')
         title = listing.find('div', class_="li-title").contents[0]
         price = _parse_price(listing)
@@ -92,23 +90,20 @@ def handle_listing_page(page, region, cat, subcat, timeback, product_listing=Non
                 "image_link": image_link,
                 "time_stamp": date
             }
-
             if description:
                 item['description'] = description 
 
             doy = date.timetuple().tm_yday
-
             if not days_of_year[-1] == doy and any(doy >= d for d in days_of_year):
                 year_index = year_index - 1
                 days_of_year = []
-
             days_of_year.append(doy)
             product_listing.append(item)
 
     return product_listing
 
 def get_listing_items(region, cat, subcat, query, timeback):
-    global is_within_timeframe
+    global is_within_timeframe, TIMEF
 
     product_listing = []
     URL_page_no = 1
@@ -119,7 +114,7 @@ def get_listing_items(region, cat, subcat, query, timeback):
         response = requests.get(URL)
         page = BS(response.text, "html.parser")
         product_listing = handle_listing_page(page, region, cat, subcat,
-                                                                   timeback, product_listing)
+                                              timeback, product_listing)
         # Stopping condition #2 no more listings
         if len(product_listing) == listings_count:
             is_within_timeframe = False
@@ -129,26 +124,20 @@ def get_listing_items(region, cat, subcat, query, timeback):
         URL_page_no = URL_page_no + 1
         logging.info(f'page number: {URL_page_no} - listings:{len(product_listing)}')
 
-    timef = '%d.%m.%Y %H:%M'
     pmap = map(
-        lambda b: {**b, 'time_stamp': b['time_stamp'].strftime(timef)}, product_listing)
+        lambda b: {**b, 'time_stamp': b['time_stamp'].strftime(TIMEF)}, product_listing)
     product_listing_json = json.dumps(list(pmap))
 
     return product_listing_json, product_listing
 
 def run(region, category, subcategory, query, timeback, dest):
     d = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
-    logging.info("2")
-    #try:
     prod_list_json, prod_list = get_listing_items(
         region=region,
         cat=category,
         subcat=subcategory,
         query=query if query else "",
         timeback=timeback)
-    #except Exception:
-    #    logging.info(Exception)
-    #    raise IOError('Could not get items')
 
     if dest == 'local':
         Path('./out').mkdir(exist_ok=True)
@@ -187,8 +176,3 @@ if __name__ == "__main__":
         query=args.query,
         timeback=args.timeback,
         dest=args.dest)
-    
-        
-
-
-    
