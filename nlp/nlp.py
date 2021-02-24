@@ -7,16 +7,21 @@ from nltk.tokenize import word_tokenize
 from nltk.probability import FreqDist
 from dotenv import load_dotenv
 load_dotenv()
+from typing import List
+
+STOPWORDS = nltk.corpus.stopwords.words('finnish')
+
+def tokenize(sentence: str) -> List[str]:
+    tokens = word_tokenize(sentence.lower())
+    tokens = [t for t in tokens if t not in STOPWORDS]
+    tokens = [t for t in tokens if t not in string.punctuation]
+    return tokens
 
 def get_tags(data: pd.DataFrame = None, col='Title', most_common=200) -> pd.DataFrame:
     """Exctract tags from listing titles, up to frequent 3-grams."""
     if not data:
         data = pd.read_csv(os.getenv('DESCRIPTIONS_PATH'))
-    stopwords = nltk.corpus.stopwords.words('finnish')
-    corpus = word_tokenize(' '.join(data.loc[:, col]).lower())
-    corpus = [t for t in corpus if t not in stopwords]
-    corpus = [t for t in corpus if t not in string.punctuation]
-    
+    corpus = tokenize(' '.join(data.loc[:, col]))
     tags = pd.DataFrame({'Word': [], 'Count': []})
     fdists = [FreqDist(corpus), FreqDist(list(bigrams(corpus))), FreqDist(list(trigrams(corpus)))]
 
@@ -29,8 +34,3 @@ def get_tags(data: pd.DataFrame = None, col='Title', most_common=200) -> pd.Data
         tags = pd.concat([tags, common])
 
     return tags
-    
-
-
-
-
